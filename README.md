@@ -1,4 +1,7 @@
 # plGeoAdaptels
+<img src="https://raw.githubusercontent.com/igorpawelec/plGeoAdaptels/main/www/plGeoAdaptels.png" align="right" width="120"/>
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 **Scale-Adaptive Superpixels (Adaptels) for geospatial raster data.**
 
