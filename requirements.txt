@@ -1,0 +1,4 @@
+# Reference only — prefer conda install for GDAL/rasterio
+numpy>=1.21
+numba>=0.56
+rasterio>=1.3

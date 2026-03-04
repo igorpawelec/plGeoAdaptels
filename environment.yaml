@@ -1,0 +1,12 @@
+name: plgeoadaptels
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.9
+  - numpy>=1.21
+  - numba>=0.56
+  - rasterio>=1.3
+  - geopandas>=0.12
+  - shapely>=2.0
+  - matplotlib
+  - scipy
