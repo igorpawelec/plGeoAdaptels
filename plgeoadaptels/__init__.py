@@ -33,13 +33,24 @@ except Exception:
 
 __author__ = "Igor Pawelec"
 
-from .adaptels import create_adaptels, adaptels_from_array
-from .io import read_raster, write_raster, normalize_layers
+# Lazy imports — Numba and rasterio are only loaded when actually used.
+# This prevents "DLL load failed" crashes at import time.
 
-__all__ = [
-    "create_adaptels",
-    "adaptels_from_array",
-    "read_raster",
-    "write_raster",
-    "normalize_layers",
-]
+_LAZY_IMPORTS = {
+    "create_adaptels":   ".adaptels",
+    "adaptels_from_array": ".adaptels",
+    "read_raster":       ".io",
+    "write_raster":      ".io",
+    "normalize_layers":  ".io",
+}
+
+__all__ = list(_LAZY_IMPORTS.keys())
+
+
+def __getattr__(name):
+    if name in _LAZY_IMPORTS:
+        module_path = _LAZY_IMPORTS[name]
+        import importlib
+        mod = importlib.import_module(module_path, __name__)
+        return getattr(mod, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
