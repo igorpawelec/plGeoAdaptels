@@ -33,24 +33,48 @@ except Exception:
 
 __author__ = "Igor Pawelec"
 
-# Lazy imports — Numba and rasterio are only loaded when actually used.
-# This prevents "DLL load failed" crashes at import time.
+# ── Import strategy ──────────────────────────────────────────────
+# Try eager imports first (fast path when everything is installed).
+# Fall back to lazy __getattr__ if numba/rasterio are broken or missing,
+# so that `import plgeoadaptels` itself never crashes.
 
-_LAZY_IMPORTS = {
-    "create_adaptels":   ".adaptels",
-    "adaptels_from_array": ".adaptels",
-    "read_raster":       ".io",
-    "write_raster":      ".io",
-    "normalize_layers":  ".io",
-}
+try:
+    from .adaptels import create_adaptels, adaptels_from_array
+    from .io import read_raster, write_raster, normalize_layers
+    _LAZY_MODE = False
+except (ImportError, OSError) as _init_err:
+    # Numba DLL broken, rasterio missing, etc.
+    # Functions will be resolved on first access via __getattr__.
+    _LAZY_MODE = True
+    _LAZY_IMPORTS = {
+        "create_adaptels":     ".adaptels",
+        "adaptels_from_array": ".adaptels",
+        "read_raster":         ".io",
+        "write_raster":        ".io",
+        "normalize_layers":    ".io",
+    }
 
-__all__ = list(_LAZY_IMPORTS.keys())
+    def __getattr__(name):
+        if name in _LAZY_IMPORTS:
+            import importlib
+            try:
+                mod = importlib.import_module(_LAZY_IMPORTS[name], __name__)
+            except (ImportError, OSError) as e:
+                raise ImportError(
+                    f"Cannot load plgeoadaptels.{name}: {e}\n"
+                    f"Install deps: conda install -c conda-forge numpy numba rasterio"
+                ) from e
+            obj = getattr(mod, name)
+            # Cache on module to avoid repeated __getattr__
+            globals()[name] = obj
+            return obj
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-def __getattr__(name):
-    if name in _LAZY_IMPORTS:
-        module_path = _LAZY_IMPORTS[name]
-        import importlib
-        mod = importlib.import_module(module_path, __name__)
-        return getattr(mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+__all__ = [
+    "create_adaptels",
+    "adaptels_from_array",
+    "read_raster",
+    "write_raster",
+    "normalize_layers",
+]
