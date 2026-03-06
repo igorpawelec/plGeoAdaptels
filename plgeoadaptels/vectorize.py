@@ -111,6 +111,12 @@ def vectorize_adaptels(labels, transform, crs_wkt,
         'properties': props,
     }
 
+    # Precompute pixel counts per adaptel (one pass, O(n_pixels))
+    if compute_area:
+        valid = data[mask]
+        max_id = int(valid.max()) + 1 if valid.size > 0 else 1
+        pixel_counts = np.bincount(valid, minlength=max_id)
+
     # Polygonize + write
     n_polygons = 0
     with fiona.open(
@@ -132,11 +138,8 @@ def vectorize_adaptels(labels, transform, crs_wkt,
             }
 
             if compute_area:
-                # Count pixels for this polygon's adaptel_id
-                # (faster than computing from geometry coordinates)
-                n_pixels = int((data == adaptel_id).sum())
+                n_pixels = int(pixel_counts[adaptel_id])
                 area = n_pixels * pixel_area
-                # Approximate perimeter from area (circle approximation)
                 perimeter = 2.0 * np.sqrt(np.pi * area)
                 feature['properties']['area_m2'] = round(area, 2)
                 feature['properties']['perimeter'] = round(perimeter, 2)
