@@ -23,28 +23,29 @@ Usage::
 
     # From numpy arrays
     labels, n = adaptels_from_array(data_array, threshold=60.0)
+
+    # Vectorize to Shapefile (no geopandas needed)
+    from plgeoadaptels.vectorize import vectorize_from_file
+    vectorize_from_file('output.tif', 'adaptels.shp')
 """
 
 try:
     from importlib.metadata import version as _version
     __version__ = _version("plgeoadaptels")
 except Exception:
-    __version__ = "0.2.0"
+    __version__ = "0.2.1"
 
 __author__ = "Igor Pawelec"
 
 # ── Import strategy ──────────────────────────────────────────────
 # Try eager imports first (fast path when everything is installed).
-# Fall back to lazy __getattr__ if numba/rasterio are broken or missing,
-# so that `import plgeoadaptels` itself never crashes.
+# Fall back to lazy __getattr__ if numba/rasterio are broken or missing.
 
 try:
     from .adaptels import create_adaptels, adaptels_from_array
     from .io import read_raster, write_raster, normalize_layers
     _LAZY_MODE = False
 except (ImportError, OSError) as _init_err:
-    # Numba DLL broken, rasterio missing, etc.
-    # Functions will be resolved on first access via __getattr__.
     _LAZY_MODE = True
     _LAZY_IMPORTS = {
         "create_adaptels":     ".adaptels",
@@ -65,7 +66,6 @@ except (ImportError, OSError) as _init_err:
                     f"Install deps: conda install -c conda-forge numpy numba rasterio"
                 ) from e
             obj = getattr(mod, name)
-            # Cache on module to avoid repeated __getattr__
             globals()[name] = obj
             return obj
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

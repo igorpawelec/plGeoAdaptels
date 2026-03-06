@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "plgeoadaptels"
-version = "0.2.0"
+version = "0.2.1"
 description = "Scale-Adaptive Superpixels (Adaptels) for geospatial raster data"
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
@@ -28,12 +28,16 @@ classifiers = [
 
 # Dependencies intentionally left empty.
 # In conda environments pip can break native libraries (GDAL, PROJ).
-# Install manually:  conda install -c conda-forge numpy numba rasterio
+# Install manually:  conda install -c conda-forge numpy numba rasterio fiona
 dependencies = []
 
 [project.optional-dependencies]
-all = ["numpy>=1.21", "numba>=0.56", "rasterio>=1.3"]
-vector = ["geopandas>=0.12", "shapely>=2.0"]
+# All core deps — install via conda, not pip!
+all = ["numpy>=1.21", "numba>=0.56", "rasterio>=1.3", "fiona>=1.9"]
+
+# NOTE: geopandas and shapely deliberately removed.
+# Vectorization uses rasterio.features.shapes + fiona only.
+# See: plgeoadaptels.vectorize module.
 
 [project.urls]
 Homepage = "https://github.com/igorpawelec/plgeoadaptels"
