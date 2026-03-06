@@ -170,14 +170,19 @@ def _create_adaptels(layers, n_layers, mask, cols, rows,
     dIdx[7] = -1 + int64(cols)
     
     # Seeds arrays (mirrors SEEDS struct)
-    seeds_x = np.empty(size, dtype=np.int32)
-    seeds_y = np.empty(size, dtype=np.int32)
-    seeds_idx = np.empty(size, dtype=np.int64)
+    # Allocated at sqrt(size)*16 — sufficient for typical adaptel growth.
+    # Overflow is handled: if n_seeds >= seeds_alloc, seed is silently dropped.
+    seeds_alloc = max(int64(100000), int64(16) * int64(int(size ** 0.5)))
+    seeds_x = np.empty(seeds_alloc, dtype=np.int32)
+    seeds_y = np.empty(seeds_alloc, dtype=np.int32)
+    seeds_idx = np.empty(seeds_alloc, dtype=np.int64)
     n_seeds = int64(0)
     
-    # Heap arrays (mirrors MINLIST struct) - allocated per-adaptel below
-    # Initial allocation
-    heap_alloc = max(int64(100000), size)
+    # Heap arrays (mirrors MINLIST struct)
+    # Heap holds boundary pixels of the CURRENT adaptel only.
+    # Max heap size ≈ perimeter of largest adaptel ≈ 4*sqrt(area).
+    # sqrt(size)*8 is a safe upper bound with margin.
+    heap_alloc = max(int64(100000), int64(8) * int64(int(size ** 0.5)))
     h_dist = np.empty(heap_alloc + 1, dtype=np.float64)
     h_x = np.empty(heap_alloc + 1, dtype=np.int32)
     h_y = np.empty(heap_alloc + 1, dtype=np.int32)
@@ -282,7 +287,7 @@ def _create_adaptels(layers, n_layers, mask, cols, rows,
                         else:
                             # Beyond threshold => new seed
                             if labels[nidx] < 0:
-                                if n_seeds < size:
+                                if n_seeds < seeds_alloc:
                                     seeds_x[n_seeds] = nx
                                     seeds_y[n_seeds] = ny
                                     seeds_idx[n_seeds] = nidx
