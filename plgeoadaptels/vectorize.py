@@ -12,6 +12,12 @@ Based on:
 import os
 import numpy as np
 
+try:
+    from tqdm import tqdm as _tqdm
+    _HAS_TQDM = True
+except ImportError:
+    _HAS_TQDM = False
+
 
 def _ensure_deps():
     """Lazy import rasterio.features.shapes and fiona."""
@@ -37,7 +43,8 @@ def vectorize_adaptels(labels, transform, crs_wkt,
                        driver="ESRI Shapefile",
                        nodata=-9999,
                        connectivity=4,
-                       compute_area=True):
+                       compute_area=True,
+                       quiet=False):
     """
     Convert adaptel label raster to polygon vector file.
 
@@ -117,8 +124,17 @@ def vectorize_adaptels(labels, transform, crs_wkt,
         max_id = int(valid.max()) + 1 if valid.size > 0 else 1
         pixel_counts = np.bincount(valid, minlength=max_id)
 
+    # Estimate polygon count for progress bar
+    n_unique = int(len(np.unique(data[mask])))
+
     # Polygonize + write
     n_polygons = 0
+    poly_iter = shapes(data, mask=mask, transform=transform,
+                       connectivity=connectivity)
+    if _HAS_TQDM and not quiet:
+        poly_iter = _tqdm(poly_iter, desc="Vectorizing", unit="poly",
+                          total=n_unique)
+
     with fiona.open(
         output_path,
         'w',
@@ -126,8 +142,7 @@ def vectorize_adaptels(labels, transform, crs_wkt,
         crs_wkt=crs_wkt,
         schema=schema
     ) as dst:
-        for geom, value in shapes(data, mask=mask, transform=transform,
-                                  connectivity=connectivity):
+        for geom, value in poly_iter:
             adaptel_id = int(value)
             if adaptel_id < 0:
                 continue
@@ -153,7 +168,7 @@ def vectorize_adaptels(labels, transform, crs_wkt,
 def vectorize_from_file(input_raster, output_path,
                         driver="ESRI Shapefile",
                         nodata=None, connectivity=4,
-                        compute_area=True):
+                        compute_area=True, quiet=False):
     """
     Convenience wrapper: read adaptel raster from file and vectorize.
 
@@ -197,5 +212,6 @@ def vectorize_from_file(input_raster, output_path,
     return vectorize_adaptels(
         data, transform, crs_wkt, output_path,
         driver=driver, nodata=int(nodata),
-        connectivity=connectivity, compute_area=compute_area
+        connectivity=connectivity, compute_area=compute_area,
+        quiet=quiet
     )

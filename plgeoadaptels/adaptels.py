@@ -17,6 +17,12 @@ import time
 from .core import _create_adaptels
 from .io import read_raster, write_raster, normalize_layers
 
+try:
+    from tqdm import tqdm as _tqdm
+    _HAS_TQDM = True
+except ImportError:
+    _HAS_TQDM = False
+
 
 # Distance name to int mapping
 DISTANCE_MAP = {
@@ -89,25 +95,39 @@ def create_adaptels(input_files, output_file=None,
     distance_type = DISTANCE_MAP[distance]
     connectivity = 8 if queen_topology else 4
     
+    # Progress bar (optional)
+    steps = ["Read", "Segment", "Write"] if output_file else ["Read", "Segment"]
+    if normalize:
+        steps.insert(1, "Normalize")
+    use_tqdm = _HAS_TQDM and not quiet
+    pbar = _tqdm(steps, desc="plGeoAdaptels", unit="step") if use_tqdm else None
+    
+    def _step(name):
+        if pbar is not None:
+            pbar.set_postfix_str(name)
+            pbar.update(1)
+    
     # Read input data
-    if not quiet:
+    if not quiet and not use_tqdm:
         print("Reading input files...", end=" ", flush=True)
     
     layers, mask, meta, cols, rows = read_raster(input_files)
     n_layers = layers.shape[0]
     
-    if not quiet:
+    if not quiet and not use_tqdm:
         print(f"OK ({cols}x{rows}, {n_layers} layer(s))")
+    _step(f"Read {cols}x{rows}, {n_layers}b")
     
     # Normalize if requested
     if normalize:
-        if not quiet:
+        if not quiet and not use_tqdm:
             print("Normalizing data...", end=" ", flush=True)
         layers = normalize_layers(layers, mask)
-        if not quiet:
+        if not quiet and not use_tqdm:
             print("OK")
+        _step("Normalize")
     
-    if not quiet:
+    if not quiet and not use_tqdm:
         print(f"Distance: {distance}")
         print("Creating adaptels...", end=" ", flush=True)
     
@@ -123,16 +143,21 @@ def create_adaptels(input_files, output_file=None,
     
     t_elapsed = time.time() - t_start
     
-    if not quiet:
+    if not quiet and not use_tqdm:
         print(f"{n_adaptels} adaptels created in {t_elapsed:.4f} seconds")
+    _step(f"{n_adaptels} adaptels in {t_elapsed:.1f}s")
     
     # Write output
     if output_file is not None:
-        if not quiet:
+        if not quiet and not use_tqdm:
             print("Writing results...", end=" ", flush=True)
         write_raster(output_file, labels, meta, cols, rows)
-        if not quiet:
+        if not quiet and not use_tqdm:
             print("OK")
+        _step("Write")
+    
+    if pbar is not None:
+        pbar.close()
     
     # Reshape to 2D
     labels_2d = labels.reshape(rows, cols)
