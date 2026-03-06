@@ -1,22 +1,29 @@
 # plGeoAdaptels
+
 <img src="https://raw.githubusercontent.com/igorpawelec/plGeoAdaptels/main/www/plGeoAdaptels.png" align="right" width="120"/>
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 
 **Scale-Adaptive Superpixels (Adaptels) for geospatial raster data.**
 
-A pure Python + Numba reimplementation of the plGeoAdaptels algorithm — portable, pip-installable, no compiled binaries required.
+A pure Python + Numba reimplementation of the Adaptel algorithm for creating scale-adaptive superpixels from geospatial raster data. Portable, pip-installable, no compiled binaries required.
 
-## Algorithm
+## Background
 
 Adaptels are superpixels that **automatically adapt their size** to local image texture: small in complex/textured regions, large in homogeneous areas. The only required parameter is the energy threshold *T*.
 
-Based on:
+The algorithm was originally proposed by:
 
 > R. Achanta, P. Marquez-Neila, P. Fua, S. Süsstrunk,
 > *"Scale-Adaptive Superpixels"*, Color and Imaging Conference (CIC26), 2018.
 
-Original C implementation by Paweł Netzel, University of Agriculture in Kraków, Poland.
+The original C implementation (`plGeoAdaptels`) was developed by **Paweł Netzel** at the University of Agriculture in Kraków, Poland. This Python package is a faithful reimplementation of that C code using Numba JIT compilation for near-native performance.
+
+The algorithm was applied to standing dead tree detection in:
+
+> I. Pawelec, J. Socha, P. Netzel,
+> *"Superpixel-based segmentation of standing dead trees from aerial photographs"*,
+> International Journal of Applied Earth Observation and Geoinformation, 2026.
 
 ## Installation
 
@@ -24,19 +31,15 @@ Original C implementation by Paweł Netzel, University of Agriculture in Kraków
 
 ```bash
 # 1. Install native dependencies via conda
-conda install -c conda-forge numpy numba rasterio
+conda install -c conda-forge numpy numba rasterio fiona
 
-# 2. Install plgeoadaptels (no auto-deps, won't break your env)
-pip install .          # from cloned repo
+# 2. Install plgeoadaptels
+pip install --no-deps .          # from cloned repo
 # or
 pip install --no-deps git+https://github.com/igorpawelec/plgeoadaptels.git
 ```
 
-**For vectorisation support:**
-
-```bash
-conda install -c conda-forge geopandas shapely
-```
+> **Note:** Dependencies are installed via conda to avoid conflicts with GDAL/PROJ native libraries. The `--no-deps` flag prevents pip from overwriting conda packages.
 
 ## Quick start
 
@@ -57,10 +60,19 @@ labels, n = create_adaptels(
     normalize=True,
 )
 
-# From numpy arrays (e.g. in Jupyter)
+# From numpy arrays (no file I/O)
 import numpy as np
 data = np.random.rand(3, 500, 500)
 labels, n = adaptels_from_array(data, threshold=30.0)
+```
+
+### Vectorization (no geopandas needed)
+
+```python
+from plgeoadaptels.vectorize import vectorize_from_file
+
+# Adaptel raster → Shapefile (or .gpkg, .geojson)
+n_poly = vectorize_from_file("output.tif", "adaptels.shp")
 ```
 
 ### Command line
@@ -92,8 +104,30 @@ First call includes Numba JIT compilation (~5 s). Subsequent calls run at near-C
 
 | Raster | Bands | Time | Adaptels |
 |---|---|---|---|
-| 400 × 400 | 3 | 0.03 s | ~580 |
-| 200 × 200 | 3 | 0.01 s | ~7 800 |
+| 400 × 400 | 3 | 0.03 s | ~2 800 |
+| 2000 × 2000 | 3 | ~1 s | ~70 000 |
+
+## Repository structure
+
+```
+plgeoadaptels/
+├── plgeoadaptels/        # Package source
+│   ├── __init__.py       # Public API (lazy imports)
+│   ├── __main__.py       # CLI entry point
+│   ├── adaptels.py       # High-level API
+│   ├── cli.py            # Command-line interface
+│   ├── core.py           # Numba JIT algorithm kernel
+│   ├── io.py             # GeoTIFF read/write (rasterio)
+│   └── vectorize.py      # Raster→vector (rasterio + fiona)
+├── test_data/            # Sample rasters
+├── www/                  # Logo & assets
+├── pyproject.toml
+├── environment.yaml
+├── CITATION.cff
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+└── LICENSE
+```
 
 ## Requirements
 
@@ -101,14 +135,29 @@ First call includes Numba JIT compilation (~5 s). Subsequent calls run at near-C
 - NumPy ≥ 1.21
 - Numba ≥ 0.56
 - Rasterio ≥ 1.3
-
-## License
-
-GNU General Public License v3.0 — see [LICENSE.md](LICENSE.md).
+- Fiona ≥ 1.9 *(for vectorization)*
 
 ## Citation
 
-If you use this software in your research, please cite both the original paper and this implementation. See [CITATION.cff](CITATION.cff).
+If you use this software in your research, please cite:
+
+1. **This implementation:**
+
+   > Pawelec, I. (2026). plGeoAdaptels — Scale-Adaptive Superpixels for geospatial data [Software]. https://github.com/igorpawelec/plgeoadaptels
+
+2. **The original algorithm:**
+
+   > Achanta, R., Marquez-Neila, P., Fua, P., & Süsstrunk, S. (2018). Scale-Adaptive Superpixels. *Color and Imaging Conference (CIC26)*.
+
+3. **The original C implementation:**
+
+   > Netzel, P. plGeoAdaptels [Software]. University of Agriculture in Kraków. https://github.com/pawelnetzel/plGeoAdaptels
+
+See also [CITATION.cff](CITATION.cff).
+
+## License
+
+GNU General Public License v3.0 — see [LICENSE](LICENSE).
 
 ## Contributing
 
