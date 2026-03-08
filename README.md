@@ -125,8 +125,16 @@ plgeoadaptels/
 ├── environment.yaml
 ├── CITATION.cff
 ├── CHANGELOG.md
+├── tests/                # Pytest suite
 ├── CONTRIBUTING.md
 └── LICENSE
+```
+
+## Testing
+
+```bash
+pip install pytest
+pytest tests/ -v
 ```
 
 ## Requirements
