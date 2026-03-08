@@ -1,14 +1,21 @@
 """
 plGeoAdaptels — Scale-Adaptive Superpixels for geospatial data.
 
-A pure Python + Numba implementation of the Adaptel algorithm for
-creating scale-adaptive superpixels from geospatial raster data.
+A pure Python + Numba implementation of two complementary superpixel
+algorithms for geospatial raster data:
+
+1. **Adaptels** — scale-adaptive superpixels controlled by an energy
+   threshold (no need to specify the number of segments).
+2. **SICLE** — Superpixels through Iterative CLEarcutting, controlled
+   by a target number of segments (best boundary delineation in
+   benchmarks).
 
 Based on:
-    R. Achanta, P. Marquez-Neila, P. Fua, S. Süsstrunk,
-    "Scale-Adaptive Superpixels", CIC26, 2018.
+    Adaptels: R. Achanta et al., "Scale-Adaptive Superpixels", CIC26, 2018.
+    SICLE: F.C. Belém et al., "Novel Arc-Cost Functions and Seed Relevance
+    Estimations for Compact and Accurate Superpixels", JMIV, 65:770–786, 2023.
 
-Original C implementation:
+Original C implementation (Adaptels):
     Paweł Netzel, University of Agriculture in Kraków, Poland.
 
 Python + Numba reimplementation:
@@ -18,11 +25,14 @@ Usage::
 
     from plgeoadaptels import create_adaptels, adaptels_from_array
 
-    # From GeoTIFF files
+    # Adaptels: threshold-based (no n_segments needed)
     labels, n = create_adaptels('input.tif', 'output.tif', threshold=60.0)
-
-    # From numpy arrays
     labels, n = adaptels_from_array(data_array, threshold=60.0)
+
+    # SICLE: n_segments-based (best boundary delineation)
+    from plgeoadaptels.sicle import create_sicle, sicle_from_array
+    labels, n = sicle_from_array(data_array, n_segments=200)
+    labels, n = create_sicle('input.tif', 'output.tif', n_segments=200)
 
     # Vectorize to Shapefile (no geopandas needed)
     from plgeoadaptels.vectorize import vectorize_from_file

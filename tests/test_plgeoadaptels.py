@@ -107,3 +107,61 @@ class TestImports:
         from plgeoadaptels.vectorize import vectorize_adaptels, vectorize_from_file
         assert callable(vectorize_adaptels)
         assert callable(vectorize_from_file)
+
+    def test_import_sicle(self):
+        from plgeoadaptels.sicle import sicle_from_array, create_sicle
+        assert callable(sicle_from_array)
+        assert callable(create_sicle)
+
+
+# ── SICLE tests ──────────────────────────────────────────────────────
+
+class TestSicleFromArray:
+
+    def test_basic(self):
+        from plgeoadaptels.sicle import sicle_from_array
+        data = np.random.rand(3, 50, 50).astype(np.float64)
+        labels, n = sicle_from_array(data, n_segments=10, quiet=True)
+        assert labels.shape == (50, 50)
+        assert n == 10
+
+    def test_single_band(self):
+        from plgeoadaptels.sicle import sicle_from_array
+        data = np.random.rand(100, 100).astype(np.float64)
+        labels, n = sicle_from_array(data, n_segments=20, quiet=True)
+        assert labels.shape == (100, 100)
+        assert n == 20
+
+    def test_n_segments_respected(self):
+        from plgeoadaptels.sicle import sicle_from_array
+        data = np.random.rand(3, 80, 80).astype(np.float64)
+        for n_seg in [5, 50, 200]:
+            labels, n = sicle_from_array(data, n_segments=n_seg, quiet=True)
+            assert n == n_seg
+
+    def test_labels_cover_image(self):
+        from plgeoadaptels.sicle import sicle_from_array
+        data = np.random.rand(3, 60, 60).astype(np.float64)
+        labels, n = sicle_from_array(data, n_segments=30, quiet=True)
+        # Every pixel should be assigned
+        assert np.all(labels >= 0)
+        # All labels should be in range
+        assert labels.max() < n
+
+    def test_with_saliency(self):
+        from plgeoadaptels.sicle import sicle_from_array
+        data = np.random.rand(3, 50, 50).astype(np.float64)
+        sal = np.zeros((50, 50), dtype=np.float64)
+        sal[15:35, 15:35] = 1.0  # "object" in center
+        labels, n = sicle_from_array(data, n_segments=20,
+                                     saliency=sal, quiet=True)
+        assert labels.shape == (50, 50)
+        assert n == 20
+
+    def test_oversampling_auto(self):
+        from plgeoadaptels.sicle import sicle_from_array
+        data = np.random.rand(3, 30, 30).astype(np.float64)
+        # n_oversampling < n_segments should auto-correct
+        labels, n = sicle_from_array(data, n_segments=10,
+                                     n_oversampling=5, quiet=True)
+        assert n == 10
