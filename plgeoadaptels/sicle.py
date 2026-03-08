@@ -436,7 +436,8 @@ def create_sicle(input_files, output_file=None,
               f"N₀={n_oversampling}, Ω={n_iterations})")
 
     # Read input raster
-    layers, mask, meta, cols, rows, n_layers = read_raster(input_files)
+    layers, mask, meta, cols, rows = read_raster(input_files)
+    n_layers = layers.shape[0]
 
     if not quiet:
         print(f"  Input: {rows}×{cols}, {n_layers} band(s)")
@@ -444,7 +445,7 @@ def create_sicle(input_files, output_file=None,
     # Read saliency if provided
     saliency = None
     if saliency_file is not None:
-        sal_layers, _, _, _, _, _ = read_raster(saliency_file)
+        sal_layers, _, _, _, _ = read_raster(saliency_file)
         saliency = sal_layers[0].reshape(rows, cols).astype(np.float64)
         # Normalize to [0, 1] if needed
         smin, smax = np.nanmin(saliency), np.nanmax(saliency)
